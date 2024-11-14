@@ -23,7 +23,7 @@ jobs:
         env:
           REPOS: |
             ghost1372/ghost1372.github.io
-            WinUICommunity/WinUICommunity.github.io
+            winuicommunity/winuicommunity.github.io
         run: |
           # Create a source directory if it doesn't exist
           mkdir -p source
@@ -39,10 +39,16 @@ jobs:
             git remote add origin https://github.com/$repo.git
             git config core.sparseCheckout true
             echo "source/*" > .git/info/sparse-checkout
-            git pull origin main # Use the appropriate branch name if not `main`
+            
+            # Attempt to pull from main, if it fails, try master
+            if ! git pull origin main; then
+              git pull origin master || echo "Branch not found in $repo"
+            fi
             
             # Copy contents of Docs into the source folder
-            mv source/* ../source/
+            if [ -d "source" ]; then
+              mv source/* ../source/
+            fi
             cd ..
             rm -rf temp-repo
           done
