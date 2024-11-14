@@ -66,13 +66,16 @@ jobs:
             rm -rf temp-repo
           done
 
-      - name: Commit changes to source folder
+      - name: Commit and push changes to source folder
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add source
           git commit -m "Add content from source folders of specified repositories" || echo "No changes to commit"
-      
+          
+          # Push changes to the repository (only if there are changes to push)
+          git push origin main
+
       # Run the rest of your site generation steps
       - name: Cache NPM dependencies
         uses: actions/cache@v4
@@ -92,3 +95,16 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
