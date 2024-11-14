@@ -1,0 +1,75 @@
+name: Pages
+
+on:
+  push:
+    branches:
+      - main # default branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Clone Docs folders from multiple repositories
+        env:
+          REPOS: |
+            ghost1372/ghost1372.github.io
+            WinUICommunity/WinUICommunity.github.io
+        run: |
+          # Create a source directory if it doesn't exist
+          mkdir -p source
+          
+          # Loop through each repository
+          for repo in $REPOS; do
+            username=$(echo $repo | cut -d'/' -f1)
+            reponame=$(echo $repo | cut -d'/' -f2)
+            
+            # Clone only the Docs folder content into a temporary directory
+            git init temp-repo
+            cd temp-repo
+            git remote add origin https://github.com/$repo.git
+            git config core.sparseCheckout true
+            echo "source/*" > .git/info/sparse-checkout
+            git pull origin main # Use the appropriate branch name if not `main`
+            
+            # Copy contents of Docs into the source folder
+            mv source/* ../source/
+            cd ..
+            rm -rf temp-repo
+          done
+
+      - name: Commit changes to source folder
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add source
+          git commit -m "Add content from Docs folders of specified repositories" || echo "No changes to commit"
+      
+      # Run the rest of your site generation steps
+      - name: Cache NPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-npm-cache
+          restore-keys: |
+            ${{ runner.OS }}-npm-cache
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
