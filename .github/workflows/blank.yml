@@ -49,7 +49,16 @@ jobs:
             for item in source/*; do
               if [[ ! "$(basename "$item")" =~ ^_.*$ ]]; then
                 if [ -e "$item" ]; then
-                  mv "$item" ../source/
+                  target="../source/$(basename "$item")"
+                  
+                  # Check if target exists and is a directory
+                  if [ -d "$target" ]; then
+                    # If target exists, remove its contents before moving
+                    rm -rf "$target"/*
+                  fi
+
+                  # Move the item to the target
+                  mv "$item" "$target"
                 fi
               fi
             done
