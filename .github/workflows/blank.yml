@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Clone Docs folders from multiple repositories
+      - name: Clone source folders from multiple repositories
         env:
           REPOS: |
             ghost1372/ghost1372.github.io
@@ -33,7 +33,7 @@ jobs:
             username=$(echo $repo | cut -d'/' -f1)
             reponame=$(echo $repo | cut -d'/' -f2)
             
-            # Clone only the Docs folder content into a temporary directory
+            # Clone only the source folder content into a temporary directory
             git init temp-repo
             cd temp-repo
             git remote add origin https://github.com/$repo.git
@@ -45,10 +45,13 @@ jobs:
               git pull origin master || echo "Branch not found in $repo"
             fi
             
-            # Copy contents of Docs into the source folder
-            if [ -d "source" ]; then
-              mv source/* ../source/
-            fi
+            # Copy contents of source (excluding folders starting with "_") into the source folder
+            shopt -s extglob
+            for item in source/!(_*); do
+              if [ -e "$item" ]; then
+                mv "$item" ../source/
+              fi
+            done
             cd ..
             rm -rf temp-repo
           done
@@ -58,7 +61,7 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add source
-          git commit -m "Add content from Docs folders of specified repositories" || echo "No changes to commit"
+          git commit -m "Add content from source folders of specified repositories" || echo "No changes to commit"
       
       # Run the rest of your site generation steps
       - name: Cache NPM dependencies
